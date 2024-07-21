@@ -10,7 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tlq.com.tlq_sale_management.dto.request.ProductRequest.ProductDTO;
+import tlq.com.tlq_sale_management.model.Category;
 import tlq.com.tlq_sale_management.model.Product;
+import tlq.com.tlq_sale_management.repository.CategoryRepository;
 import tlq.com.tlq_sale_management.service.ProductService.ProductService;
 
 import java.io.IOException;
@@ -25,6 +28,9 @@ public class ProductController {
 
     @Autowired
     ProductService productService;
+
+    @Autowired
+    CategoryRepository categoryRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -49,12 +55,23 @@ public class ProductController {
         log.error("file: "+ file.toString());
         Map uploadResult = null;
         try {
-            // Chuyển đổi chuỗi JSON thành đối tượng Product
-            Product product = objectMapper.readValue(productJson, Product.class);
+            // Chuyển đổi chuỗi JSON thành đối tượng ProductDTO
+            ProductDTO productDTO = objectMapper.readValue(productJson, ProductDTO.class);
 
             uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
             String imageUrl = (String) uploadResult.get("url");
+
+            // Tạo đối tượng Product từ ProductDTO
+            Product product = new Product();
+            product.setProductName(productDTO.getProductName());
+            product.setPrice(productDTO.getPrice());
             product.setImage(imageUrl);
+
+            // Tìm Category theo categoryId trong CategoryDTO
+            Category category = categoryRepository.findById(productDTO.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            product.setCategory(category);
+
             productService.create(product);
             return new ResponseEntity<>("create product success", HttpStatus.OK);
         } catch (IOException e) {

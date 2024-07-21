@@ -33,6 +33,7 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @JsonBackReference
     @OneToMany(mappedBy = "product", orphanRemoval = true)
     private List<OrderDetail> orderDetails = new ArrayList<>();
 
